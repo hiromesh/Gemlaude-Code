@@ -5,6 +5,8 @@
  */
 
 const esbuild = require('esbuild');
+const fs = require('fs');
+const path = require('path');
 
 const production = process.argv.includes('--production');
 const watch = process.argv.includes('--watch');
@@ -31,6 +33,35 @@ const esbuildProblemMatcherPlugin = {
   },
 };
 
+// Plugin to copy static assets
+const copyAssetsPlugin = {
+  name: 'copy-assets',
+  setup(build) {
+    build.onEnd(() => {
+      // Ensure dist directory exists
+      if (!fs.existsSync('dist')) {
+        fs.mkdirSync('dist', { recursive: true });
+      }
+      
+      // Ensure media directory exists in dist
+      if (!fs.existsSync('dist/media')) {
+        fs.mkdirSync('dist/media', { recursive: true });
+      }
+      
+      // Copy CSS and JS files
+      const mediaFiles = ['main.css', 'main.js'];
+      mediaFiles.forEach(file => {
+        const srcPath = path.join('media', file);
+        const destPath = path.join('dist/media', file);
+        if (fs.existsSync(srcPath)) {
+          fs.copyFileSync(srcPath, destPath);
+          console.log(`Copied ${srcPath} -> ${destPath}`);
+        }
+      });
+    });
+  },
+};
+
 async function main() {
   const ctx = await esbuild.context({
     entryPoints: ['src/extension.ts'],
@@ -44,7 +75,7 @@ async function main() {
     external: ['vscode'],
     logLevel: 'silent',
     plugins: [
-      /* add to the end of plugins array */
+      copyAssetsPlugin,
       esbuildProblemMatcherPlugin,
     ],
   });
