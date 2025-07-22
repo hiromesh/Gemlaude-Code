@@ -270,7 +270,17 @@ Your core function is efficient and safe assistance. Balance extreme conciseness
       ? `\n\n---\n\n${userMemory.trim()}`
       : '';
 
-  return `${basePrompt}${memorySuffix}`;
+  const finalSystemPrompt = `${basePrompt}${memorySuffix}`;
+  
+  // 🔥 Log complete system prompt for debugging
+  console.error('🔥 Complete System Prompt Generated:');
+  console.error('🔥 System Prompt Length:', finalSystemPrompt.length);
+  console.error('🔥 System Prompt Content:');
+  console.error('=' .repeat(80));
+  console.error(finalSystemPrompt);
+  console.error('=' .repeat(80));
+  
+  return finalSystemPrompt;
 }
 
 /**

@@ -154,6 +154,10 @@ export interface ConfigParameters {
   noBrowser?: boolean;
   summarizeToolOutput?: Record<string, SummarizeToolOutputSettings>;
   ideMode?: boolean;
+  // OpenAI support
+  openaiApiKey?: string;
+  openaiApiUrl?: string;
+  openaiOrganization?: string;
 }
 
 export class Config {
@@ -208,6 +212,10 @@ export class Config {
     | Record<string, SummarizeToolOutputSettings>
     | undefined;
   private readonly experimentalAcp: boolean = false;
+  // OpenAI support
+  private readonly openaiApiKey: string | undefined;
+  private readonly openaiApiUrl: string | undefined;
+  private readonly openaiOrganization: string | undefined;
 
   constructor(params: ConfigParameters) {
     this.sessionId = params.sessionId;
@@ -257,6 +265,10 @@ export class Config {
     this.noBrowser = params.noBrowser ?? false;
     this.summarizeToolOutput = params.summarizeToolOutput;
     this.ideMode = params.ideMode ?? false;
+    // OpenAI support
+    this.openaiApiKey = params.openaiApiKey;
+    this.openaiApiUrl = params.openaiApiUrl;
+    this.openaiOrganization = params.openaiOrganization;
 
     if (params.contextFileName) {
       setGeminiMdFilename(params.contextFileName);
@@ -607,6 +619,19 @@ export class Config {
 
     await registry.discoverTools();
     return registry;
+  }
+
+  // OpenAI support methods
+  getOpenaiApiKey(): string | undefined {
+    return this.openaiApiKey;
+  }
+
+  getOpenaiApiUrl(): string | undefined {
+    return this.openaiApiUrl;
+  }
+
+  getOpenaiOrganization(): string | undefined {
+    return this.openaiOrganization;
   }
 }
 // Export model constants for use in CLI

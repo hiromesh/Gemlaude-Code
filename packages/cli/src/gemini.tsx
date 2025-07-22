@@ -86,6 +86,7 @@ async function relaunchWithAdditionalArgs(additionalArgs: string[]) {
   process.exit(0);
 }
 import { runAcpPeer } from './acp/acpPeer.js';
+import { runServerMode } from './serverMode.js';
 
 export async function main() {
   const workspaceRoot = process.cwd();
@@ -200,6 +201,13 @@ export async function main() {
     ...(await getStartupWarnings()),
     ...(await getUserStartupWarnings(workspaceRoot)),
   ];
+
+  // Check for server mode first
+  if (argv.serverMode) {
+    console.error('🔥 Starting Gemini CLI in server mode...');
+    await runServerMode(config, settings, extensions);
+    return;
+  }
 
   const shouldBeInteractive =
     !!argv.promptInteractive || (process.stdin.isTTY && input?.length === 0);
@@ -328,17 +336,28 @@ async function validateNonInterActiveAuth(
   selectedAuthType: AuthType | undefined,
   nonInteractiveConfig: Config,
 ) {
+  // Check if OpenAI configuration is provided via config
+  const hasOpenAIConfig = nonInteractiveConfig.getOpenaiApiKey();
+  
   // making a special case for the cli. many headless environments might not have a settings.json set
   // so if GEMINI_API_KEY is set, we'll use that. However since the oauth things are interactive anyway, we'll
   // still expect that exists
-  if (!selectedAuthType && !process.env.GEMINI_API_KEY) {
+  if (!selectedAuthType && !process.env.GEMINI_API_KEY && !hasOpenAIConfig) {
     console.error(
-      `Please set an Auth method in your ${USER_SETTINGS_PATH} OR specify GEMINI_API_KEY env variable file before running`,
+      `Please set an Auth method in your ${USER_SETTINGS_PATH} OR specify GEMINI_API_KEY env variable OR provide OpenAI configuration before running`,
     );
     process.exit(1);
   }
 
-  selectedAuthType = selectedAuthType || AuthType.USE_GEMINI;
+  // Determine auth type based on available configuration
+  if (!selectedAuthType) {
+    if (hasOpenAIConfig) {
+      selectedAuthType = AuthType.USE_OPENAI;
+    } else {
+      selectedAuthType = AuthType.USE_GEMINI;
+    }
+  }
+  
   const err = validateAuthMethod(selectedAuthType);
   if (err != null) {
     console.error(err);

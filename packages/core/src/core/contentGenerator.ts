@@ -43,6 +43,7 @@ export enum AuthType {
   USE_GEMINI = 'gemini-api-key',
   USE_VERTEX_AI = 'vertex-ai',
   CLOUD_SHELL = 'cloud-shell',
+  USE_OPENAI = 'openai',
 }
 
 export type ContentGeneratorConfig = {
@@ -51,6 +52,9 @@ export type ContentGeneratorConfig = {
   vertexai?: boolean;
   authType?: AuthType | undefined;
   proxy?: string | undefined;
+  // OpenAI specific config
+  openaiApiUrl?: string;
+  openaiOrganization?: string;
 };
 
 export function createContentGeneratorConfig(
@@ -101,6 +105,22 @@ export function createContentGeneratorConfig(
     return contentGeneratorConfig;
   }
 
+  // OpenAI support
+  if (authType === AuthType.USE_OPENAI) {
+    // Try to get OpenAI config from Config object first, then fall back to environment variables
+    const openaiApiKey = config.getOpenaiApiKey() || process.env.OPENAI_API_KEY || undefined;
+    const openaiApiUrl = config.getOpenaiApiUrl() || process.env.OPENAI_API_URL || 'https://api.openai.com/v1';
+    const openaiOrganization = config.getOpenaiOrganization() || process.env.OPENAI_ORGANIZATION || undefined;
+    
+    if (openaiApiKey) {
+      contentGeneratorConfig.apiKey = openaiApiKey;
+      contentGeneratorConfig.openaiApiUrl = openaiApiUrl;
+      contentGeneratorConfig.openaiOrganization = openaiOrganization;
+      contentGeneratorConfig.vertexai = false;
+    }
+    return contentGeneratorConfig;
+  }
+
   return contentGeneratorConfig;
 }
 
@@ -138,6 +158,20 @@ export async function createContentGenerator(
     });
 
     return googleGenAI.models;
+  }
+
+  if (config.authType === AuthType.USE_OPENAI) {
+    const { OpenAIContentGenerator } = await import('./openaiContentGenerator.js');
+    
+    if (!config.apiKey) {
+      throw new Error('OpenAI API key is required when using OpenAI provider');
+    }
+    
+    return new OpenAIContentGenerator({
+      apiKey: config.apiKey,
+      apiUrl: config.openaiApiUrl,
+      organization: config.openaiOrganization,
+    });
   }
 
   throw new Error(

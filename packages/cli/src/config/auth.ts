@@ -38,5 +38,11 @@ export const validateAuthMethod = (authMethod: string): string | null => {
     return null;
   }
 
+  if (authMethod === AuthType.USE_OPENAI) {
+    // OpenAI API key can be provided via environment variable or CLI argument
+    // We don't strictly require OPENAI_API_KEY env var here since it can be passed via CLI args
+    return null;
+  }
+
   return 'Invalid auth method selected.';
 };
